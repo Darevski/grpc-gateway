@@ -920,10 +920,18 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 					}
 					if opts.Responses != nil {
 						for name, resp := range opts.Responses {
-							operationObject.Responses[name] = swaggerResponseObject{
-								Description: resp.Description,
-								Schema:      swaggerSchemaFromProtoSchema(resp.Schema, reg, customRefs),
+							// Merge response data into default response if available.
+							respObj := operationObject.Responses[name]
+							if resp.Description != "" {
+								respObj.Description = resp.Description
 							}
+							if resp.Schema != nil {
+								respObj.Schema = swaggerSchemaFromProtoSchema(resp.Schema, reg, customRefs)
+							}
+							if resp.Examples != nil {
+								respObj.Examples = swaggerExamplesFromProtoExamples(resp.Examples)
+							}
+							operationObject.Responses[name] = respObj
 						}
 					}
 
@@ -1181,6 +1189,7 @@ func applyTemplate(p param) (*swaggerObject, error) {
 						respMap[k] = swaggerResponseObject{
 							Description: v.Description,
 							Schema:      swaggerSchemaFromProtoSchema(v.Schema, p.reg, customRefs),
+							Examples:    swaggerExamplesFromProtoExamples(v.Examples),
 						}
 					}
 				}
@@ -1582,6 +1591,24 @@ func swaggerSchemaFromProtoSchema(s *swagger_options.Schema, reg *descriptor.Reg
 	}
 
 	return ret
+}
+
+func swaggerExamplesFromProtoExamples(in map[string]string) map[string]interface{} {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]interface{})
+	for mimeType, exampleStr := range in {
+		switch mimeType {
+		case "application/json":
+			// JSON example objects are rendered raw.
+			out[mimeType] = json.RawMessage(exampleStr)
+		default:
+			// All other mimetype examples are rendered as strings.
+			out[mimeType] = exampleStr
+		}
+	}
+	return out
 }
 
 func protoJSONSchemaTypeToFormat(in []swagger_options.JSONSchema_JSONSchemaSimpleTypes) (string, string) {

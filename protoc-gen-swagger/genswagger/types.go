@@ -155,8 +155,9 @@ type swaggerResponsesObject map[string]swaggerResponseObject
 
 // http://swagger.io/specification/#responseObject
 type swaggerResponseObject struct {
-	Description string              `json:"description"`
-	Schema      swaggerSchemaObject `json:"schema"`
+	Description string                 `json:"description"`
+	Schema      swaggerSchemaObject    `json:"schema"`
+	Examples    map[string]interface{} `json:"examples,omitempty"`
 }
 
 type keyVal struct {
