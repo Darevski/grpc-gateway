@@ -80,6 +80,17 @@ func (e *errorBody) Reset()         { *e = errorBody{} }
 func (e *errorBody) String() string { return proto.CompactTextString(e) }
 func (*errorBody) ProtoMessage()    {}
 
+// MuxOrGlobalError uses the mux-configured error handler, falling back to global.
+//
+// This method is called from generated gateway handler code.
+func MuxOrGlobalError(ctx context.Context, mux *ServeMux, marshaler Marshaler, w http.ResponseWriter, r *http.Request, err error) {
+	if mux.protoErrorHandler != nil {
+		mux.protoErrorHandler(ctx, mux, marshaler, w, r, err)
+	} else {
+		HTTPError(ctx, mux, marshaler, w, r, err)
+	}
+}
+
 // DefaultHTTPError is the default implementation of HTTPError.
 // If "err" is an error from gRPC system, the function replies with the status code mapped by HTTPStatusFromCode.
 // If otherwise, it replies with http.StatusInternalServerError.
